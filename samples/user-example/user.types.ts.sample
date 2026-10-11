@@ -1,0 +1,7 @@
+// Mirrors the `users` table exactly (snake_case, as returned by Postgres).
+// The schema is managed outside this repo; update this when the table changes.
+export interface UserRow {
+    id: string;
+    email: string;
+    created_at: Date;
+}

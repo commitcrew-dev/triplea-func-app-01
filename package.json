@@ -1,0 +1,27 @@
+{
+  "name": "TRIPLEA-FUNC-APP-01",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/src/functions/*.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "azurite": "azurite --silent --location .azurite --debug .azurite/debug.log",
+    "func": "npm run build && func start",
+    "dev": "npm run build && concurrently -k -n tsc,azurite,func -c blue,yellow,green \"npm:watch\" \"npm:azurite\" \"wait-on tcp:127.0.0.1:10000 tcp:127.0.0.1:10001 tcp:127.0.0.1:10002 && func start\"",
+    "fn": "node scripts/run-fn.mjs"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/pg": "^8.23.1",
+    "azurite": "^3.37.0",
+    "concurrently": "^10.0.6",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.0.0",
+    "wait-on": "^9.5.1"
+  }
+}

@@ -1,0 +1,18 @@
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { getUser } from "../services/user.service";
+
+export async function getUserHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    const user = await getUser(request.params.id);
+    if (!user) {
+        return { status: 404, jsonBody: { error: "User not found" } };
+    }
+
+    return { jsonBody: user };
+};
+
+app.http('getUser', {
+    methods: ['GET'],
+    authLevel: 'function',
+    route: 'users/{id}',
+    handler: getUserHandler
+});

@@ -1,0 +1,11 @@
+import { query } from "../clients/postgres.client";
+import { UserRow } from "../types/user.types";
+
+// All SQL for the `users` table lives here. Select explicit columns (not `*`) so a
+// column added in the DB doesn't silently change what the API returns.
+const USER_COLUMNS = "id, email, created_at";
+
+export async function findUserById(id: string): Promise<UserRow | undefined> {
+    const rows = await query<UserRow>(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [id]);
+    return rows[0];
+}

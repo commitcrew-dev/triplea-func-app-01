@@ -1,0 +1,6 @@
+import { findUserById } from "../repositories/user.repository";
+import { UserRow } from "../types/user.types";
+
+export async function getUser(id: string): Promise<UserRow | undefined> {
+    return findUserById(id);
+}
