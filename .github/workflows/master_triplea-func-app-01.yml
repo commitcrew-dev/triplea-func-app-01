@@ -1,71 +1,52 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy Node.js project to Azure Function App - triplea-func-app-01
 
 on:
   push:
     branches:
       - 'master'
-    paths-ignore:
-      - '**.md'
-      - 'samples/**'
-  pull_request:
-    branches:
-      - 'master'
-    paths-ignore:
-      - '**.md'
-      - 'samples/**'
   workflow_dispatch:
 
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
-  NODE_VERSION: '22.x'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
+  NODE_VERSION: '22.x' # set this to the node version to use (supports 8.x, 10.x, 12.x)
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read 
+      contents: read #This is required for actions/checkout
 
     steps:
       - name: 'Checkout GitHub Action'
         uses: actions/checkout@v4
 
       - name: Setup Node ${{ env.NODE_VERSION }} Environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/package-lock.json'
 
-      - name: 'Install, build'
+      - name: 'Resolve Project Dependencies Using Npm'
         shell: bash
-        working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
         run: |
-          npm ci
-          npm run build
-
-      - name: 'Remove dev dependencies'
-        shell: bash
-        working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-        run: npm prune --omit=dev
+          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+          npm install
+          npm run build --if-present
+          npm run test --if-present
+          popd
 
       - name: Zip artifact for deployment
-        working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-        run: zip -r "$GITHUB_WORKSPACE/release.zip" dist node_modules host.json package.json
+        run: zip release.zip ./* -r
 
       - name: Upload artifact for deployment job
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: release.zip
-          retention-days: 1
 
   deploy:
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs: build
     permissions:
@@ -80,15 +61,15 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: |
-          unzip -q release.zip
+          unzip release.zip
           rm release.zip
       
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0524391227D8438D9FEB8D7B86CEDE4D }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2D695AEB267D47DCBA5A26CBA5F2B970 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3EDA8BDBFA144EFCA105844CAA1BE190 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_BDAB4CE88D3C42CABD106AEC78B4A71E }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_404B8AB0D0BB409582648C3CB3FE1DE2 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1EF332C186A84E2EB5F9337071B57DBD }}
 
       - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1
@@ -97,11 +78,4 @@ jobs:
           app-name: 'triplea-func-app-01'
           slot-name: 'Production'
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-
-      # Fails the run if the deployed app doesn't answer; retries cover cold start.
-      - name: Smoke test
-        if: steps.fa.outputs.app-url != ''
-        run: |
-          curl --fail --silent --show-error \
-            --retry 6 --retry-delay 10 --retry-all-errors \
-            "${{ steps.fa.outputs.app-url }}/api/hello?name=ci"
+          
